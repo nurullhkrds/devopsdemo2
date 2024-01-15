@@ -30,7 +30,7 @@ pipeline {
             steps {
                 script {
                     // GitHub deposunu çekmek için bu kimliği kullan
-                    git branch: 'main', credentialsId: 'github', url: 'https://github.com/nurullhkrds/demo.git'
+                    git branch: 'main', credentialsId: 'github', url: 'https://github.com/nurullhkrds/devopsdenemeson.git'
                 }
             }
         }
