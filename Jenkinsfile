@@ -13,20 +13,19 @@ pipeline {
 
     stages {
 
-
         stage('Install Snyk') {
             steps {
                 script {
-                    echo "Snyk is already installed." // Assuming Snyk is pre-installed
+                    // Snyk yüklü olduğunu varsayalım
+                    echo "Snyk is already installed."
                 }
             }
         }
 
-
         stage('Cleanup') {
             steps {
                 script {
-                    // If the demo directory exists, delete it
+                    // demo dizini varsa sil
                     if (fileExists('demo')) {
                         bat 'rmdir /s /q demo'
                     }
@@ -34,11 +33,11 @@ pipeline {
             }
         }
 
-        stage('Checkout github') {
+        stage('Checkout GitHub') {
             steps {
                 script {
-                    // Use the specified credentials to clone the GitHub repository
-                    git branch: 'main', credentialsId: 'github', url: 'https://github.com/nurullhkrds/devopsdenemeson.git'
+                    // GitHub deposunu belirtilen kimlik bilgileriyle klonla
+                    git branch: 'main', credentialsId: 'github', url: 'https://github.com/nurullhkrds/devopsdemo2.git'
                 }
             }
         }
@@ -46,7 +45,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    // Add your Maven commands here
+                    // Maven komutlarını buraya ekleyin
                     bat 'mvn clean install'
                 }
             }
@@ -55,7 +54,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image using the specified Dockerfile
+                    // Belirtilen Dockerfile'ı kullanarak Docker imajını oluştur
                     bat "docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ."
                 }
             }
@@ -76,37 +75,34 @@ pipeline {
             }
         }
 
-
-         stage('Pull Docker Image') {
+        stage('Pull Docker Image') {
             steps {
                 script {
-                    // Pull Docker image from Docker Hub
+                    // Docker Hub'dan Docker imajını çek
                     bat "docker pull ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                 }
             }
         }
-
-        stage('Snyk Scan') {
-            steps {
-                script {
-                    // Snyk taramasını gerçekleştir
-                    def snykResult = bat(script: '"C:\\Users\\Windows 11\\AppData\\Roaming\\npm\\snyk" test --json', returnStatus: true).trim()
-                    def snykJson = readJSON text: snykResult
-
-                    if (snykJson.issues.length > 0) {
-                        echo "Security vulnerabilities found! Please check Snyk for details."
-                        snykJson.issues.each { issue ->
-                            echo "Issue: ${issue.title}"
-                            echo "Severity: ${issue.severity}"
-                            echo "URL: ${issue.url}"
-                        }
-                        error "Security vulnerabilities found! See above for details."
-                    } else {
-                        echo "No security vulnerabilities found."
-                    }
+        
+        stage('Snyk Auth and Scan') {
+    steps {
+        script {
+            // Snyk kimlik doğrulamasını yap ve API belirtecini al
+            withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+                def snykCommand = "\"C:\\Users\\Nurullah\\AppData\\Roaming\\npm\\snyk\" test --json"
+                bat "echo 'SNYK_TOKEN=${SNYK_TOKEN}' > .env"
+                def snykResult = bat(script: snykCommand, returnStatus: true)
+                if (snykResult != 0) {
+                    error "Snyk test failed. Exit code: ${snykResult}"
                 }
             }
         }
+    }
+}
+
+     
+
+
 
     }
 }
